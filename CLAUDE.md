@@ -1,6 +1,6 @@
 # p2p-chat
 
-接手前读 [HANDOFF.md](./HANDOFF.md) 和 [CONTEXT.md](./CONTEXT.md)。术语不要漂。当前实现到 Ticket 3：REPL / SAS / 斜杠命令。Ticket 4 是文档收口。
+接手前读 [HANDOFF.md](./HANDOFF.md) 和 [CONTEXT.md](./CONTEXT.md)。术语不要漂。Tickets 1–4 已落地（帧 / CLI / REPL / 文档）。范围外：群聊、离线投递、文件传输、GUI。
 
 ## Agent skills
 

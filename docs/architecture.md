@@ -11,7 +11,7 @@
 1. **职责分层清晰 (Layered Separation)**：底层密码学与传输协议完全委托给 `P2PCore` 与 `p2p-trust`，本应用仅关注应用层协议帧封装、会话生命周期管理与终端人机交互。
 2. **异步非阻塞 (Async & Non-blocking Concurrency)**：后台监听接入、远端消息读取、本地终端按行输入解耦并行，避免任何单点 I/O 阻塞整体交互。
 3. **确定性安全 (Deterministic Security Guarantee)**：严格遵循零信任模型，不妥协端到端机密性与认证性；身份公钥即地址，带外比对 SAS 升级至 Verified 状态。
-4. **极简与可测性 (Simplicity & Testability)**：遵循 Ponytail 原则，不做未请求的过度设计与抽象。帧编解码在纯函数缝隙上测（`encode_frame` / `decode_frame`），不依赖 Relay。跨 Peer 的 Session 集成测依赖 `p2p-core` 的测试专用 Relay TLS 跳过，当前库尚未对该能力开放公开 API，因此 Ticket 1 不把 live dial/accept 作为 CI 必过项。
+4. **极简与可测性 (Simplicity & Testability)**：遵循 Ponytail 原则，不做未请求的过度设计与抽象。帧编解码在纯函数缝隙上测（`encode_frame` / `decode_frame`），不依赖 Relay。跨 Peer 的 Session 集成测依赖 `p2p-core` 的测试专用 Relay TLS 跳过，当前库尚未对该能力开放公开 API，因此 live `dial`/`accept` 不是 CI 必过项。用法见 [README.md](../README.md)；接入笔记见 [notes/](../notes/)。
 
 ---
 
@@ -69,20 +69,20 @@
 
 ## 4. 核心模块与职责 (Core Modules)
 
-### 4.1 CLI 与配置模块 (`cli.rs`) — Ticket 2 已落地
+### 4.1 CLI 与配置模块 (`cli.rs`)
 - 使用 `clap` 解析启动参数：
   - `--data-dir <PATH>`：指定持久化存储路径。
   - `--temp`：启用纯内存临时运行模式（默认或显式指定）。
   - `--password <PWD>`：身份解锁口令（优先取参数或环境变量 `P2P_PASSWORD`，未提供时终端交互提示）。
-  - `--relay <URL>` / `--n0-public`：配置打洞中继服务器。
+  - `--relay <URL>` / `--n0-public`：bind 时的 `RelayConfig`。`--n0-public` 的 dial `DialHints` URL 是 iroh 1.1.0 四个 hostname 的硬编码副本（p2p-core 不暴露该列表）。
 
-### 4.2 存储与身份初始化模块 (`store.rs`) — Ticket 2 已落地
+### 4.2 存储与身份初始化模块 (`store.rs`)
 - 封装 `KeyStore` 与 `TrustStore` 的实例化工厂：
   - **持久化模式**：使用 `p2p_trust::FileKeyStore`（Argon2id + ChaCha20Poly1305 加密）与 `p2p_trust::FileTrustStore`（签名保护）。
   - **临时模式**：使用 `p2p_trust::MemoryKeyStore` 与 `p2p_trust::MemoryTrustStore`。
 - 负责绑定生成/加载 `p2p_core::Endpoint`。
 
-### 4.3 应用层消息协议帧模块 (`frame.rs`) — Ticket 1 已落地
+### 4.3 应用层消息协议帧模块 (`frame.rs`)
 - **数据结构**：
   ```rust
   #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -97,7 +97,7 @@
   - `write_frame` / `read_frame`：把上述帧写到 / 从 `p2p_core::Session` 读写；`read_frame` 在干净 EOF 时返回 `Ok(None)`。
   - 安全边界：`MAX_FRAME_PAYLOAD_SIZE = 1 MiB`。
 
-### 4.4 命令与交互分发模块 (`command.rs`) — Ticket 3 已落地
+### 4.4 命令与交互分发模块 (`command.rs`)
 - 将终端输入的原始行解析为结构化命令枚举：
   ```rust
   pub enum UserInput {
@@ -112,7 +112,7 @@
   }
   ```
 
-### 4.5 异步会话与状态机 (`app.rs` / `main.rs`) — Ticket 3 已落地
+### 4.5 异步会话与状态机 (`app.rs` / `main.rs`)
 - 调度三个并发事件流（`tokio::select!`）：
   1. **后台呼入监听 (Inbound Accept Stream)**：无活动连接时，等待 `endpoint.accept()`。接入成功后转为主会话。
   2. **活动会话接收流 (Session Message Recv Stream)**：有活动连接时，持续异步调用 `frame::read_frame`，接收对端消息并打印渲染；若对端关闭连接，自动清理会话并重置为待连接状态。
@@ -154,10 +154,10 @@
 
 ## 6. 测试与质量保证策略 (Testing & Quality Strategy)
 
-1. **协议层单元测试 (`src/frame.rs`)** — Ticket 1 已落地：
+1. **协议层单元测试 (`src/frame.rs`)**：
    - 往返、空文本、截断 header/payload、声称超长、非法 JSON、编码侧超长拒绝。
-2. **命令解析单元测试 (`src/command.rs`)** — Ticket 3 已落地：空行、聊天文本、斜杠命令、`/dial` 非法 hex、`/exit` 等同 `/quit`。
-3. **CLI / 持久化测试** — Ticket 2 已落地：
+2. **命令解析单元测试 (`src/command.rs`)**：空行、聊天文本、斜杠命令、`/dial` 非法 hex、`/exit` 等同 `/quit`。
+3. **CLI / 持久化测试**：
    - `tests/cli_args.rs`：标志解析与互斥。
    - `tests/identity.rs`：`--data-dir` 重启 Peer ID 不变；密码错；`--temp` 不写盘。
    - `tests/cli_bin.rs`：进程启动打印 64 字符 hex Peer ID；持久化两次启动相同；`/quit` 干净退出；无会话时 `/help` `/info` `/sas`。
