@@ -19,7 +19,7 @@ cargo run -- --data-dir ./data --password secret
 
 依赖 `p2p-core` / `p2p-trust`，来源 `https://github.com/klzw2233/P2PCore.git`。
 
-CI（GitHub Actions）：`ubuntu-latest`，`cargo fmt --all -- --check` + `cargo test --locked`。Rust 1.91.0 用 `dtolnay/rust-toolchain` 预编译工具链；`Swatinem/rust-cache` 缓存依赖。live `dial`/`accept` 不是 CI 必过项。`P2PCore` 是私有仓库，test job 需要 repo secret `P2PCORE_TOKEN`（能读 `klzw2233/P2PCore` 的 PAT）。
+CI（GitHub Actions）：`ubuntu-latest`，`cargo fmt --all -- --check` + `cargo test --locked`。Rust 1.91.0 用 `dtolnay/rust-toolchain` 预编译 rustc；`Swatinem/rust-cache`（`shared-key` + `cache-all-crates`）缓存 crates.io 与 `target/`。live `dial`/`accept` 不是 CI 必过项。`P2PCore` 是私有仓库，test job 需要 repo secret `P2PCORE_TOKEN`（能读 `klzw2233/P2PCore` 的 PAT）。冷启动会完整编译依赖；之后同 `Cargo.lock` 应命中 cache。
 
 ## 帧格式（ADR-0001）
 

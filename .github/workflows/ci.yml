@@ -30,4 +30,7 @@ jobs:
       - name: Auth private git deps
         run: git config --global url."https://x-access-token:${{ secrets.P2PCORE_TOKEN }}@github.com/klzw2233/P2PCore".insteadOf "https://github.com/klzw2233/P2PCore"
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: test
+          cache-all-crates: true
       - run: cargo test --locked

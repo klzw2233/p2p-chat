@@ -72,7 +72,7 @@ grilling 记录在会话里，不单独成文。
    - Ticket 1 验收里的「in-process 双端收发」因此改成：帧编解码在纯函数上测；真正的 `dial`/`accept` 等 P2PCore 暴露测试 Relay 钩子，或 Ticket 3 用两个进程人工验证。
    - **不要**为了绿测去改 P2PCore，除非单独开 P2PCore issue。也不要再加依赖 n0 公网的测试当必过项。
 
-2. **GitHub Actions CI 已落地。** `.github/workflows/ci.yml`：`checkout@v5`（Node 24）、`dtolnay/rust-toolchain@master` + 1.91.0 预编译、`Swatinem/rust-cache@v2`、`cargo fmt --all -- --check`、`cargo test --locked`。没有 `cargo install`。test job 用 `CARGO_NET_GIT_FETCH_WITH_CLI` + secret `P2PCORE_TOKEN` 拉私有 git 依赖 P2PCore（Actions 默认 `GITHUB_TOKEN` 读不了另一个私有仓库）。live Session 仍不是 CI 必过项。
+2. **GitHub Actions CI 已落地。** `.github/workflows/ci.yml`：`checkout@v5`（Node 24）、`dtolnay/rust-toolchain@master` + 1.91.0 预编译 rustc、`Swatinem/rust-cache@v2`（`shared-key: test` + `cache-all-crates`，缓存 crates.io 源码和 `target/`）、`cargo fmt --all -- --check`、`cargo test --locked`。没有 `cargo install`。test job 用 `CARGO_NET_GIT_FETCH_WITH_CLI` + secret `P2PCORE_TOKEN` 拉私有 git 依赖 P2PCore。冷启动会编整棵 iroh 树并写入 ~467MB cache；之后同 lockfile 应命中。live Session 仍不是 CI 必过项。
 
 3. **`main.rs` 还不是聊天客户端。** 跑 `cargo run -- --temp` 会 bind、打印 Peer ID、退出。stdin REPL 是 Ticket 3。
 
