@@ -69,14 +69,14 @@
 
 ## 4. 核心模块与职责 (Core Modules)
 
-### 4.1 CLI 与配置模块 (`cli.rs`)
+### 4.1 CLI 与配置模块 (`cli.rs`) — Ticket 2 已落地
 - 使用 `clap` 解析启动参数：
   - `--data-dir <PATH>`：指定持久化存储路径。
   - `--temp`：启用纯内存临时运行模式（默认或显式指定）。
   - `--password <PWD>`：身份解锁口令（优先取参数或环境变量 `P2P_PASSWORD`，未提供时终端交互提示）。
   - `--relay <URL>` / `--n0-public`：配置打洞中继服务器。
 
-### 4.2 存储与身份初始化模块 (`store.rs`)
+### 4.2 存储与身份初始化模块 (`store.rs`) — Ticket 2 已落地
 - 封装 `KeyStore` 与 `TrustStore` 的实例化工厂：
   - **持久化模式**：使用 `p2p_trust::FileKeyStore`（Argon2id + ChaCha20Poly1305 加密）与 `p2p_trust::FileTrustStore`（签名保护）。
   - **临时模式**：使用 `p2p_trust::MemoryKeyStore` 与 `p2p_trust::MemoryTrustStore`。
@@ -157,7 +157,10 @@
 1. **协议层单元测试 (`src/frame.rs`)** — Ticket 1 已落地：
    - 往返、空文本、截断 header/payload、声称超长、非法 JSON、编码侧超长拒绝。
 2. **命令解析单元测试 (`src/command.rs`)** — Ticket 3。
-3. **CLI / 持久化测试** — Ticket 2。
+3. **CLI / 持久化测试** — Ticket 2 已落地：
+   - `tests/cli_args.rs`：标志解析与互斥。
+   - `tests/identity.rs`：`--data-dir` 重启 Peer ID 不变；密码错；`--temp` 不写盘。
+   - `tests/cli_bin.rs`：进程启动打印 64 字符 hex Peer ID；持久化两次启动相同。
 4. **跨 Peer Session 集成测试**：
    - `p2p-core` 内部用 `iroh::test_utils::run_relay_server()` + `RelayConfig::with_insecure_tls()`（`#[cfg(test)]`，非公开）。
    - 本 crate 不能调用该 API。用 `n0_public()` 的 live 拨号在本环境约 20s 超时。
