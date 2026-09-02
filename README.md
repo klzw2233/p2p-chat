@@ -2,7 +2,7 @@
 
 基于 [P2PCore](https://github.com/klzw2233/P2PCore) 的点对点终端聊天示例。端到端加密、设备级身份、带外 SAS 核验。
 
-**状态（2026-09-02）：** Ticket 1 完成——应用层长度前缀 JSON 帧。交互式 REPL 尚未落地。`cargo run` 目前只打印占位行。
+**状态（2026-09-02）：** Ticket 2 完成——CLI 参数、Identity Key 持久化 / 临时模式、启动打印 64 字符 hex Peer ID。交互式 REPL 尚未落地。`cargo run -- --temp` 会 bind、打印 Peer ID、退出。
 
 用词见 [CONTEXT.md](./CONTEXT.md)。架构见 [docs/architecture.md](./docs/architecture.md)。交接见 [HANDOFF.md](./HANDOFF.md)。
 
@@ -12,7 +12,8 @@ Rust 1.91+（与 P2PCore MSRV 对齐）。
 
 ```bash
 cargo test
-cargo run
+cargo run -- --temp
+cargo run -- --data-dir ./data --password secret
 ```
 
 依赖 `p2p-core` / `p2p-trust`，来源 `https://github.com/klzw2233/P2PCore.git`。
@@ -25,7 +26,7 @@ cargo run
 { "text": "hello", "timestamp": 1700000000 }
 ```
 
-## 计划中的 CLI（Ticket 2–3）
+## CLI（Ticket 2）
 
 ```text
 p2p-chat --temp
@@ -33,7 +34,12 @@ p2p-chat --data-dir ./data --password secret --relay https://relay.example
 p2p-chat --n0-public --temp
 ```
 
-REPL 斜杠命令：`/dial <hex>` `/sas` `/verify` `/info` `/close` `/help` `/quit`。
+- `--data-dir`：`identity.key`（Argon2id + ChaCha20Poly1305）+ `trust.store`（签名）。密码来自 `--password`、`P2P_PASSWORD`，或交互提示。
+- `--temp` 或都不指定：内存 Identity Key，不写盘。
+- `--relay` 与 `--n0-public` 互斥；默认无官方中继。
+- 启动后打印 `Peer ID: <64 hex>`。
+
+计划中的 REPL 斜杠命令（Ticket 3）：`/dial <hex>` `/sas` `/verify` `/info` `/close` `/help` `/quit`。
 
 ## 文档
 
