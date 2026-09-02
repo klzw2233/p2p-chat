@@ -12,26 +12,47 @@ env:
   CARGO_NET_GIT_FETCH_WITH_CLI: true
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: p2p-chat.tar.gz
+            sha_cmd: sha256sum
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: p2p-chat.zip
+            sha_cmd: shasum -a 256
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: p2p-chat.zip
+            sha_cmd: sha256sum
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.91.0
+          targets: ${{ matrix.target }}
       - name: Auth private git deps
         run: git config --global url."https://x-access-token:${{ secrets.P2PCORE_TOKEN }}@github.com/klzw2233/P2PCore".insteadOf "https://github.com/klzw2233/P2PCore"
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: release
+          shared-key: release-${{ matrix.target }}
           cache-all-crates: true
-      - run: cargo build --release --locked
+      - run: cargo build --release --locked --target ${{ matrix.target }}
       - name: Package
+        shell: bash
         run: |
-          mkdir -p dist
-          cp target/release/p2p-chat dist/
-          tar czf p2p-chat-${{ github.ref_name }}-linux-x86_64.tar.gz -C dist p2p-chat
-          sha256sum p2p-chat-*.tar.gz > p2p-chat-${{ github.ref_name }}-linux-x86_64.tar.gz.sha256
+          BIN=target/${{ matrix.target }}/release/p2p-chat
+          [ -f "$BIN.exe" ] && BIN="$BIN.exe"
+          VERSION=${GITHUB_REF_NAME#v}
+          NAME=p2p-chat-${GITHUB_REF_NAME}-${{ matrix.target }}
+          mkdir -p "$NAME"
+          cp "$BIN" "$NAME/"
+          tar czf "$NAME.tar.gz" "$NAME"
+          ${{ matrix.sha_cmd }} "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
       - uses: softprops/action-gh-release@v2
         with:
           files: |
