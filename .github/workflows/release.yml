@@ -1,0 +1,40 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_NET_GIT_FETCH_WITH_CLI: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.91.0
+      - name: Auth private git deps
+        run: git config --global url."https://x-access-token:${{ secrets.P2PCORE_TOKEN }}@github.com/klzw2233/P2PCore".insteadOf "https://github.com/klzw2233/P2PCore"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release
+          cache-all-crates: true
+      - run: cargo build --release --locked
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp target/release/p2p-chat dist/
+          tar czf p2p-chat-${{ github.ref_name }}-linux-x86_64.tar.gz -C dist p2p-chat
+          sha256sum p2p-chat-*.tar.gz > p2p-chat-${{ github.ref_name }}-linux-x86_64.tar.gz.sha256
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            p2p-chat-*.tar.gz
+            p2p-chat-*.tar.gz.sha256
+          generate_release_notes: true

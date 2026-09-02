@@ -1,7 +1,7 @@
 # 工作状态交接
 
 **最后更新: 2026-09-02**
-**当前阶段: Ticket 4 文档收口。Tickets 1–4 编码/文档均已落地；#1 spec 待关。**
+**当前阶段: Tickets 1–4 与 Spec #1 已全部关闭。**
 
 本文件供接手的 Claude Code 会话阅读。先读 [CONTEXT.md](./CONTEXT.md)，再读本文，再读 [docs/architecture.md](./docs/architecture.md)。
 
@@ -21,7 +21,7 @@
 | 项 | 位置 |
 |---|---|
 | Remote | `git@github.com:klzw2233/p2p-chat.git` |
-| Spec | [#1](https://github.com/klzw2233/p2p-chat/issues/1) — Tickets 1–4 落地后可关 |
+| Spec | [#1](https://github.com/klzw2233/p2p-chat/issues/1) — **已关** |
 | Ticket 1 脚手架 + 帧 | [#2](https://github.com/klzw2233/p2p-chat/issues/2) — **已关**，合入 `main` via #6 |
 | Ticket 2 CLI / 身份 / 持久化 | [#3](https://github.com/klzw2233/p2p-chat/issues/3) — **已关**，合入 `main` via #7 |
 | Ticket 3 REPL / SAS / 斜杠命令 | [#4](https://github.com/klzw2233/p2p-chat/issues/4) — **已关**，合入 `main` via #9 |
@@ -75,8 +75,7 @@ grilling 记录在会话里，不单独成文。
 
 ## 建议的下一步
 
-关 #5（文档验收）和 #1（spec 全部落地）。不要提前做群聊 / 文件。
-
+Tickets 1–4 与 #1 均已关闭。新工作请开新 issue。不要提前做群聊 / 文件。
 ---
 
 ## 动手前必读（按顺序）
