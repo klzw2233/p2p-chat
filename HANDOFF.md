@@ -11,7 +11,7 @@
 
 1. **用词以 [CONTEXT.md](./CONTEXT.md) 为准。** Local Peer / Remote Peer / Peer ID / Chat Session / Slash Command / SAS Display / Verified Status。不要写成好友、用户、房间。
 2. **不要重新讨论已定的决定。** 见下方「已锁定」。推翻则写新 ADR。
-3. **Git 工作流：** 当前在 `feat/cli-identity-persistence`，不要直接改 `main`。
+3. **Git 工作流：** 当前在 `chore/github-actions-ci`，不要直接改 `main`。
 4. **Ponytail：** 最短能用的实现。不要提前写 REPL / `/dial` / SAS。那些是 Ticket 3。
 
 ---
@@ -21,10 +21,10 @@
 | 项 | 位置 |
 |---|---|
 | Remote | `git@github.com:klzw2233/p2p-chat.git` |
-| 分支 | `feat/cli-identity-persistence`（相对 `main` @ `8a10454`） |
+| 分支 | `chore/github-actions-ci`（相对 `main` @ `2280c2b`） |
 | Spec | [#1](https://github.com/klzw2233/p2p-chat/issues/1) |
 | Ticket 1 脚手架 + 帧 | [#2](https://github.com/klzw2233/p2p-chat/issues/2) — **已关**，合入 `main` via #6 |
-| Ticket 2 CLI / 身份 / 持久化 | [#3](https://github.com/klzw2233/p2p-chat/issues/3) — **代码已写，Issue 未关** |
+| Ticket 2 CLI / 身份 / 持久化 | [#3](https://github.com/klzw2233/p2p-chat/issues/3) — **已关**，合入 `main` via #7 |
 | Ticket 3 REPL / SAS / 斜杠命令 | [#4](https://github.com/klzw2233/p2p-chat/issues/4) — blocked by #3 |
 | Ticket 4 文档 | [#5](https://github.com/klzw2233/p2p-chat/issues/5) — blocked by #4 |
 | 底层库 | `https://github.com/klzw2233/P2PCore.git`（git 依赖，commit 以 `Cargo.lock` 为准） |
@@ -72,7 +72,7 @@ grilling 记录在会话里，不单独成文。
    - Ticket 1 验收里的「in-process 双端收发」因此改成：帧编解码在纯函数上测；真正的 `dial`/`accept` 等 P2PCore 暴露测试 Relay 钩子，或 Ticket 3 用两个进程人工验证。
    - **不要**为了绿测去改 P2PCore，除非单独开 P2PCore issue。也不要再加依赖 n0 公网的测试当必过项。
 
-2. **`#3` 还没 close。** 提交 / PR 后：在 #3 评论实测结果，再 `gh issue close 3`。关了 #3 才算 #4 解阻。
+2. **GitHub Actions CI 已落地。** `.github/workflows/ci.yml`：`checkout@v5`（Node 24，避免 Node 20 弃用）、`dtolnay/rust-toolchain@master` + 1.91.0 预编译工具链、`Swatinem/rust-cache@v2`、`cargo fmt --all -- --check`、`cargo test --locked`。没有 `cargo install`。live Session 仍不是 CI 必过项。
 
 3. **`main.rs` 还不是聊天客户端。** 跑 `cargo run -- --temp` 会 bind、打印 Peer ID、退出。stdin REPL 是 Ticket 3。
 

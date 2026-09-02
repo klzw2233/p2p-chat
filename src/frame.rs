@@ -78,7 +78,9 @@ pub fn decode_frame(bytes: &[u8]) -> Result<ChatMessage, FrameError> {
             max: MAX_FRAME_PAYLOAD_SIZE,
         });
     }
-    let payload = bytes.get(4..4 + payload_len).ok_or(FrameError::UnexpectedEof)?;
+    let payload = bytes
+        .get(4..4 + payload_len)
+        .ok_or(FrameError::UnexpectedEof)?;
     Ok(serde_json::from_slice(payload)?)
 }
 

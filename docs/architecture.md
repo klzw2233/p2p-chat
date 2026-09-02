@@ -165,3 +165,4 @@
    - `p2p-core` 内部用 `iroh::test_utils::run_relay_server()` + `RelayConfig::with_insecure_tls()`（`#[cfg(test)]`，非公开）。
    - 本 crate 不能调用该 API。用 `n0_public()` 的 live 拨号在本环境约 20s 超时。
    - 因此 Ticket 1 的 crate 测试只覆盖帧字节形状；live Session 等 P2PCore 开放测试 Relay 钩子，或 Ticket 3 用人工双进程验证。
+5. **GitHub Actions CI**：`push`/`pull_request` → `main`。`ubuntu-latest` 上 `cargo fmt --all -- --check` 与 `cargo test --locked`。工具链 1.91.0（`dtolnay/rust-toolchain@master`，预编译），依赖缓存 `Swatinem/rust-cache@v2`。`actions/checkout@v5`（Node 24）。不加 OS 矩阵、clippy、cargo-deny。

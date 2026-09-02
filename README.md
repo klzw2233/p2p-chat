@@ -11,12 +11,15 @@
 Rust 1.91+（与 P2PCore MSRV 对齐）。
 
 ```bash
-cargo test
+cargo fmt --all -- --check
+cargo test --locked
 cargo run -- --temp
 cargo run -- --data-dir ./data --password secret
 ```
 
 依赖 `p2p-core` / `p2p-trust`，来源 `https://github.com/klzw2233/P2PCore.git`。
+
+CI（GitHub Actions）：`ubuntu-latest`，`cargo fmt --all -- --check` + `cargo test --locked`。Rust 1.91.0 用 `dtolnay/rust-toolchain` 预编译工具链；`Swatinem/rust-cache` 缓存依赖。live `dial`/`accept` 不是 CI 必过项。
 
 ## 帧格式（ADR-0001）
 
