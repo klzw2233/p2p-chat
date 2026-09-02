@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_NET_GIT_FETCH_WITH_CLI: true
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.91.0
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.91.0
+      - name: Auth private git deps
+        run: git config --global url."https://x-access-token:${{ secrets.P2PCORE_TOKEN }}@github.com/klzw2233/P2PCore".insteadOf "https://github.com/klzw2233/P2PCore"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: test
+          cache-all-crates: true
+      - run: cargo test --locked
