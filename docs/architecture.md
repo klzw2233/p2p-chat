@@ -97,7 +97,7 @@
   - `write_frame` / `read_frame`：把上述帧写到 / 从 `p2p_core::Session` 读写；`read_frame` 在干净 EOF 时返回 `Ok(None)`。
   - 安全边界：`MAX_FRAME_PAYLOAD_SIZE = 1 MiB`。
 
-### 4.4 命令与交互分发模块 (`command.rs`)
+### 4.4 命令与交互分发模块 (`command.rs`) — Ticket 3 已落地
 - 将终端输入的原始行解析为结构化命令枚举：
   ```rust
   pub enum UserInput {
@@ -112,7 +112,7 @@
   }
   ```
 
-### 4.5 异步会话与状态机 (`app.rs` / `main.rs`)
+### 4.5 异步会话与状态机 (`app.rs` / `main.rs`) — Ticket 3 已落地
 - 调度三个并发事件流（`tokio::select!`）：
   1. **后台呼入监听 (Inbound Accept Stream)**：无活动连接时，等待 `endpoint.accept()`。接入成功后转为主会话。
   2. **活动会话接收流 (Session Message Recv Stream)**：有活动连接时，持续异步调用 `frame::read_frame`，接收对端消息并打印渲染；若对端关闭连接，自动清理会话并重置为待连接状态。
@@ -156,13 +156,13 @@
 
 1. **协议层单元测试 (`src/frame.rs`)** — Ticket 1 已落地：
    - 往返、空文本、截断 header/payload、声称超长、非法 JSON、编码侧超长拒绝。
-2. **命令解析单元测试 (`src/command.rs`)** — Ticket 3。
+2. **命令解析单元测试 (`src/command.rs`)** — Ticket 3 已落地：空行、聊天文本、斜杠命令、`/dial` 非法 hex、`/exit` 等同 `/quit`。
 3. **CLI / 持久化测试** — Ticket 2 已落地：
    - `tests/cli_args.rs`：标志解析与互斥。
    - `tests/identity.rs`：`--data-dir` 重启 Peer ID 不变；密码错；`--temp` 不写盘。
-   - `tests/cli_bin.rs`：进程启动打印 64 字符 hex Peer ID；持久化两次启动相同。
+   - `tests/cli_bin.rs`：进程启动打印 64 字符 hex Peer ID；持久化两次启动相同；`/quit` 干净退出；无会话时 `/help` `/info` `/sas`。
 4. **跨 Peer Session 集成测试**：
    - `p2p-core` 内部用 `iroh::test_utils::run_relay_server()` + `RelayConfig::with_insecure_tls()`（`#[cfg(test)]`，非公开）。
    - 本 crate 不能调用该 API。用 `n0_public()` 的 live 拨号在本环境约 20s 超时。
-   - 因此 Ticket 1 的 crate 测试只覆盖帧字节形状；live Session 等 P2PCore 开放测试 Relay 钩子，或 Ticket 3 用人工双进程验证。
+   - 因此 crate 测试只覆盖帧字节形状与 REPL 命令；live `dial`/`accept` 用两个进程人工验证（`--n0-public` 或共享 `--relay`），不是 CI 必过项。
 5. **GitHub Actions CI**：`push`/`pull_request` → `main`。`ubuntu-latest` 上 `cargo fmt --all -- --check` 与 `cargo test --locked`。工具链 1.91.0（`dtolnay/rust-toolchain@master`，预编译 rustc），`Swatinem/rust-cache@v2`（`shared-key: test` + `cache-all-crates`）缓存 crates.io 源码和 `target/`。`actions/checkout@v5`（Node 24）。test job 需要 secret `P2PCORE_TOKEN` 拉私有 git 依赖。不加 OS 矩阵、clippy、cargo-deny。

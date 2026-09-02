@@ -37,6 +37,19 @@ pub fn peer_id_hex(id: PeerId) -> String {
     id.as_bytes().iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// Parse a 64-character hex Peer ID. Case-insensitive.
+pub fn peer_id_from_hex(hex: &str) -> Option<PeerId> {
+    if hex.len() != 64 {
+        return None;
+    }
+    let mut bytes = [0u8; 32];
+    for (i, chunk) in hex.as_bytes().chunks(2).enumerate() {
+        let s = std::str::from_utf8(chunk).ok()?;
+        bytes[i] = u8::from_str_radix(s, 16).ok()?;
+    }
+    PeerId::from_bytes(bytes).ok()
+}
+
 fn relay_config(args: &Args) -> Result<RelayConfig, Error> {
     if args.n0_public {
         Ok(RelayConfig::n0_public())
@@ -44,5 +57,22 @@ fn relay_config(args: &Args) -> Result<RelayConfig, Error> {
         RelayConfig::custom([url.as_str()])
     } else {
         Ok(RelayConfig::disabled())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use p2p_trust::IdentityKey;
+
+    #[test]
+    fn peer_id_hex_round_trips() {
+        let id = IdentityKey::generate().peer_id();
+        let hex = peer_id_hex(id);
+        assert_eq!(hex.len(), 64);
+        assert_eq!(peer_id_from_hex(&hex), Some(id));
+        assert_eq!(peer_id_from_hex(&hex.to_uppercase()), Some(id));
+        assert!(peer_id_from_hex("zz").is_none());
+        assert!(peer_id_from_hex(&hex[..63]).is_none());
     }
 }

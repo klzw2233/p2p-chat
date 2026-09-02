@@ -2,7 +2,7 @@
 
 基于 [P2PCore](https://github.com/klzw2233/P2PCore) 的点对点终端聊天示例。端到端加密、设备级身份、带外 SAS 核验。
 
-**状态（2026-09-02）：** Ticket 2 完成——CLI 参数、Identity Key 持久化 / 临时模式、启动打印 64 字符 hex Peer ID。交互式 REPL 尚未落地。`cargo run -- --temp` 会 bind、打印 Peer ID、退出。
+**状态（2026-09-02）：** Ticket 3 完成——stdin REPL、斜杠命令、后台 `accept`、SAS Display、`/verify`。`cargo run -- --temp` 进入 REPL；`/quit` 退出。
 
 用词见 [CONTEXT.md](./CONTEXT.md)。架构见 [docs/architecture.md](./docs/architecture.md)。交接见 [HANDOFF.md](./HANDOFF.md)。
 
@@ -40,9 +40,9 @@ p2p-chat --n0-public --temp
 - `--data-dir`：`identity.key`（Argon2id + ChaCha20Poly1305）+ `trust.store`（签名）。密码来自 `--password`、`P2P_PASSWORD`，或交互提示。
 - `--temp` 或都不指定：内存 Identity Key，不写盘。
 - `--relay` 与 `--n0-public` 互斥；默认无官方中继。
-- 启动后打印 `Peer ID: <64 hex>`。
+- 启动后打印 `Peer ID: <64 hex>`，进入 REPL。
 
-计划中的 REPL 斜杠命令（Ticket 3）：`/dial <hex>` `/sas` `/verify` `/info` `/close` `/help` `/quit`。
+REPL 斜杠命令：`/dial <hex>` `/sas` `/verify` `/info` `/close` `/help` `/quit`。非斜杠行当聊天文本发送。
 
 ## 文档
 
