@@ -1,7 +1,7 @@
 # 工作状态交接
 
 **最后更新: 2026-09-02**
-**当前阶段: Ticket 3 编码完成，未合入 main。下一步是 Ticket 4（文档收口）。**
+**当前阶段: Ticket 4 文档收口。Tickets 1–4 编码/文档均已落地；#1 spec 待关。**
 
 本文件供接手的 Claude Code 会话阅读。先读 [CONTEXT.md](./CONTEXT.md)，再读本文，再读 [docs/architecture.md](./docs/architecture.md)。
 
@@ -11,7 +11,7 @@
 
 1. **用词以 [CONTEXT.md](./CONTEXT.md) 为准。** Local Peer / Remote Peer / Peer ID / Chat Session / Slash Command / SAS Display / Verified Status。不要写成好友、用户、房间。
 2. **不要重新讨论已定的决定。** 见下方「已锁定」。推翻则写新 ADR。
-3. **Git 工作流：** 当前在 `feat/repl-slash-commands`，不要直接改 `main`。
+3. **Git 工作流：** 不要直接改 `main`。
 4. **Ponytail：** 最短能用的实现。不要提前写群聊 / 文件传输。那些不在范围内。
 
 ---
@@ -21,12 +21,11 @@
 | 项 | 位置 |
 |---|---|
 | Remote | `git@github.com:klzw2233/p2p-chat.git` |
-| 分支 | `feat/repl-slash-commands`（相对 `main` @ `38c98cf`） |
-| Spec | [#1](https://github.com/klzw2233/p2p-chat/issues/1) |
+| Spec | [#1](https://github.com/klzw2233/p2p-chat/issues/1) — Tickets 1–4 落地后可关 |
 | Ticket 1 脚手架 + 帧 | [#2](https://github.com/klzw2233/p2p-chat/issues/2) — **已关**，合入 `main` via #6 |
 | Ticket 2 CLI / 身份 / 持久化 | [#3](https://github.com/klzw2233/p2p-chat/issues/3) — **已关**，合入 `main` via #7 |
-| Ticket 3 REPL / SAS / 斜杠命令 | [#4](https://github.com/klzw2233/p2p-chat/issues/4) — 编码完成，待合入 |
-| Ticket 4 文档 | [#5](https://github.com/klzw2233/p2p-chat/issues/5) — blocked by #4 |
+| Ticket 3 REPL / SAS / 斜杠命令 | [#4](https://github.com/klzw2233/p2p-chat/issues/4) — **已关**，合入 `main` via #9 |
+| Ticket 4 文档 | [#5](https://github.com/klzw2233/p2p-chat/issues/5) — README + `notes/` |
 | 底层库 | `https://github.com/klzw2233/P2PCore.git`（git 依赖，commit 以 `Cargo.lock` 为准） |
 | 本地检出 | 同级目录 `../P2PCore`（只读参考；本 crate 不要 path 依赖） |
 
@@ -51,16 +50,12 @@ grilling 记录在会话里，不单独成文。
 
 ---
 
-## Ticket 3 落地了什么
+## 落地了什么
 
-叠在 Ticket 2 之上：
-
-- `src/command.rs`：`parse_line` → `UserInput`。斜杠命令 vs 聊天文本；`/exit` = `/quit`。
-- `src/app.rs`：`tokio::select!` 调度 stdin、`endpoint.accept()`（无活动 Session 时）、`read_frame`（有活动 Session 时）。单活动 Chat Session。
-- `src/store.rs`：`peer_id_from_hex`（大小写不敏感的 64 hex）。
-- `src/main.rs`：bind 后进 REPL。`--n0-public` 把 iroh 1.1.0 四个生产 n0 Relay URL 传给 `DialHints`；`--relay` 把该 URL 传给 `DialHints`。
-- `/sas` 调 `p2p_trust::sas`；`/verify` 调 `endpoint.mark_verified`。
-- 测试：`command` 单元测 + `tests/cli_bin.rs` 喂 `/quit` / `/help` / `/info`。live `dial`/`accept` 仍不是 CI 必过项。
+- Ticket 1：`frame.rs` 长度前缀 JSON。
+- Ticket 2：`cli.rs` / `store.rs`，身份持久化。
+- Ticket 3：`command.rs` + `app.rs` REPL；`/sas` → `p2p_trust::sas`；`/verify` → `endpoint.mark_verified`。
+- Ticket 4：README 安装 / 构建 / 双实例 / Relay / Slash Commands；`notes/01-p2pcore-integration.md`。
 
 ---
 
@@ -70,7 +65,7 @@ grilling 记录在会话里，不单独成文。
    - `p2p-core` 的双端测试靠 `iroh::test_utils::run_relay_server()` + `RelayConfig::with_insecure_tls()`。后者是 `#[cfg(test)]` **私有**方法，应用 crate 调不到。
    - `RelayConfig::n0_public()` 的 live 拨号在本环境约 20s 超时（曾经试过，已从测试里删掉，避免 CI 空等）。
    - **不要**为了绿测去改 P2PCore，除非单独开 P2PCore issue。也不要再加依赖 n0 公网的测试当必过项。
-   - 人工验证：两进程 `cargo run -- --temp --n0-public`，把 A 的 Peer ID 贴到 B 的 `/dial`。
+   - 人工验证：两进程 `cargo run -- --temp --n0-public`，把 A 的 Peer ID 贴到 B 的 `/dial`。见 README。
 
 2. **GitHub Actions CI 已落地。** `.github/workflows/ci.yml`：`checkout@v5`（Node 24）、`dtolnay/rust-toolchain@master` + 1.91.0 预编译 rustc、`Swatinem/rust-cache@v2`（`shared-key: test` + `cache-all-crates`）、`cargo fmt --all -- --check`、`cargo test --locked`。test job 用 `CARGO_NET_GIT_FETCH_WITH_CLI` + secret `P2PCORE_TOKEN` 拉私有 git 依赖 P2PCore。live Session 仍不是 CI 必过项。
 
@@ -78,9 +73,9 @@ grilling 记录在会话里，不单独成文。
 
 ---
 
-## 建议的下一步（Ticket 4 = #5）
+## 建议的下一步
 
-按 #5 做：README 用法、架构与实现同步、关票。不要提前做群聊 / 文件。
+关 #5（文档验收）和 #1（spec 全部落地）。不要提前做群聊 / 文件。
 
 ---
 
@@ -90,5 +85,5 @@ grilling 记录在会话里，不单独成文。
 2. 本文
 3. [docs/architecture.md](./docs/architecture.md)
 4. [docs/adr/0001-length-prefixed-json-framing.md](./docs/adr/0001-length-prefixed-json-framing.md)
-5. P2PCore：`../P2PCore/notes/04-app-layer.md` 和 `../P2PCore/CONTEXT.md`
-6. GitHub `#5`
+5. [notes/01-p2pcore-integration.md](./notes/01-p2pcore-integration.md)
+6. P2PCore：`../P2PCore/notes/04-app-layer.md` 和 `../P2PCore/CONTEXT.md`
