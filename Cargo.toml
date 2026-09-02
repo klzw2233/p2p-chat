@@ -1,0 +1,16 @@
+[package]
+name = "p2p-chat"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+p2p-core = { git = "https://github.com/klzw2233/P2PCore.git" }
+p2p-trust = { git = "https://github.com/klzw2233/P2PCore.git" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "io-std", "io-util"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
