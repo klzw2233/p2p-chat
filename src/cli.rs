@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-/// Startup flags for p2p-chat. REPL is Ticket 3.
+/// Startup flags for p2p-chat.
 #[derive(Parser, Debug)]
 #[command(name = "p2p-chat")]
 pub struct Args {
