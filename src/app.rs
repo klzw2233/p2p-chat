@@ -9,6 +9,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use crate::command::{HELP, UserInput, parse_line};
 use crate::frame::{ChatMessage, read_frame, write_frame};
 use crate::store::peer_id_hex;
+use crate::ui::trust_label;
 
 /// Relay URLs to pass as DialHints (empty → `DialHints::none()`).
 pub async fn run_repl(endpoint: Endpoint, relay_urls: Vec<String>) -> Result<(), Error> {
@@ -115,7 +116,7 @@ async fn dispatch(
 fn on_session(endpoint: &Endpoint, slot: &mut Option<Session>, s: Session, how: &str) {
     let remote = s.remote_peer_id();
     let hex = peer_id_hex(remote);
-    let trust = trust_label(endpoint, &remote);
+    let trust = trust_label(trust_of(endpoint, &remote));
     println!("Chat Session {how}: {hex} ({trust})");
     *slot = Some(s);
 }
@@ -127,7 +128,7 @@ fn print_info(endpoint: &Endpoint, session: &Option<Session>) {
         Some(s) => {
             let remote = s.remote_peer_id();
             println!("Remote Peer ID: {}", peer_id_hex(remote));
-            println!("Trust State: {}", trust_label(endpoint, &remote));
+            println!("Trust State: {}", trust_label(trust_of(endpoint, &remote)));
         }
     }
 }
@@ -202,11 +203,6 @@ async fn send_text(session: &mut Option<Session>, text: &str) {
     }
 }
 
-fn trust_label(endpoint: &Endpoint, peer: &PeerId) -> &'static str {
-    match endpoint.trust_state(peer) {
-        Ok(TrustState::Verified) => "Verified",
-        Ok(TrustState::Tofu) => "TOFU",
-        Ok(TrustState::Unknown) => "unknown",
-        Err(_) => "unknown",
-    }
+fn trust_of(endpoint: &Endpoint, peer: &PeerId) -> TrustState {
+    endpoint.trust_state(peer).unwrap_or(TrustState::Unknown)
 }
