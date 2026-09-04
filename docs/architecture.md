@@ -25,6 +25,13 @@
                                     │ CLI Input / Terminal Output
                                     ▼
 +-------------------------------------------------------------------------+
+|                    Presentation Layer (`ui.rs`)                        |
+|       rustyline-async TTY editing, SharedWriter, prompt rendering       |
++-------------------------------------------------------------------------+
+                                    ▲
+                                    │ Input events / rendered output
+                                    ▼
++-------------------------------------------------------------------------+
 |                     Application Layer (p2p-chat)                        |
 |                                                                         |
 |  +-------------------------------------------------------------------+  |
@@ -112,11 +119,17 @@
   }
   ```
 
-### 4.5 异步会话与状态机 (`app.rs` / `main.rs`)
-- 调度三个并发事件流（`tokio::select!`）：
+### 4.5 终端展示与输入模块 (`ui.rs`)
+- `Ui` 持有两个输出 sink：TTY 模式下二者都是同一个 `SharedWriter` 的 clone，非 TTY 模式下分别是 stdout 与 stderr；远端消息、系统事件、错误和原始多行结果均经此输出。
+- `Input` 统一包装 `Readline` 与普通 `Lines<BufReader<Stdin>>`，向应用层提供相同的行、Ctrl-C 与 EOF 事件；命令历史只保留在当前进程。
+- 纯函数 `prompt_for(Option<(PeerId, TrustState)>)` 生成 `[idle]> ` 或 `[<8-hex>|<Trust State>]> `。`trust_label(TrustState)` 也位于本模块，供 prompt 与 `/info` 共用。
+
+### 4.6 异步会话与状态机 (`app.rs` / `main.rs`)
+- TTY 和非 TTY 共用一个 `tokio::select!` 事件循环：
   1. **后台呼入监听 (Inbound Accept Stream)**：无活动连接时，等待 `endpoint.accept()`。接入成功后转为主会话。
   2. **活动会话接收流 (Session Message Recv Stream)**：有活动连接时，持续异步调用 `frame::read_frame`，接收对端消息并打印渲染；若对端关闭连接，自动清理会话并重置为待连接状态。
-  3. **标准输入流 (Stdin Command/Text Stream)**：异步逐行读取用户终端输入，交由 `command` 模块分发并执行相应操作。
+  3. **输入流 (Input Stream)**：TTY 模式使用 `rustyline-async`，非 TTY 模式使用普通行读取；二者都交由 `command` 模块分发。
+- 每轮循环在进入 `tokio::select!` 前由当前 Chat Session 与 Trust State 重新计算 prompt，并仅在内容变化时更新。
 
 ---
 
@@ -161,8 +174,11 @@
    - `tests/cli_args.rs`：标志解析与互斥。
    - `tests/identity.rs`：`--data-dir` 重启 Peer ID 不变；密码错；`--temp` 不写盘。
    - `tests/cli_bin.rs`：进程启动打印 64 字符 hex Peer ID；持久化两次启动相同；`/quit` 干净退出；无会话时 `/help` `/info` `/sas`。
-4. **跨 Peer Session 集成测试**：
+4. **终端展示测试 (`src/ui.rs`)**：
+   - `prompt_for` 单元测试覆盖 idle、TOFU、Verified、Unknown 和 8 字符 Peer ID 缩写。
+   - draft 保留与 cursor 列恢复依赖 pty 和两个 live Peers，仅按 README 做人工验证，不是 CI 必过项。
+5. **跨 Peer Session 集成测试**：
    - `p2p-core` 内部用 `iroh::test_utils::run_relay_server()` + `RelayConfig::with_insecure_tls()`（`#[cfg(test)]`，非公开）。
    - 本 crate 不能调用该 API。用 `n0_public()` 的 live 拨号在本环境约 20s 超时。
-   - 因此 crate 测试只覆盖帧字节形状与 REPL 命令；live `dial`/`accept` 用两个进程人工验证（`--n0-public` 或共享 `--relay`），不是 CI 必过项。
-5. **GitHub Actions CI**：`push`/`pull_request` → `main`。`ubuntu-latest` 上 `cargo fmt --all -- --check` 与 `cargo test --locked`。工具链 1.91.0（`dtolnay/rust-toolchain@master`，预编译 rustc），`Swatinem/rust-cache@v2`（`shared-key: test` + `cache-all-crates`）缓存 crates.io 源码和 `target/`。`actions/checkout@v5`（Node 24）。test job 需要 secret `P2PCORE_TOKEN` 拉私有 git 依赖。不加 OS 矩阵、clippy、cargo-deny。
+   - 因此 crate 测试只覆盖帧字节形状、REPL 命令与纯 prompt；live `dial`/`accept` 用两个进程人工验证（`--n0-public` 或共享 `--relay`），不是 CI 必过项。
+6. **GitHub Actions CI**：`push`/`pull_request` → `main`。`ubuntu-latest` 上 `cargo fmt --all -- --check` 与 `cargo test --locked`。工具链 1.91.0（`dtolnay/rust-toolchain@master`，预编译 rustc），`Swatinem/rust-cache@v2`（`shared-key: test` + `cache-all-crates`）缓存 crates.io 源码和 `target/`。`actions/checkout@v5`（Node 24）。test job 需要 secret `P2PCORE_TOKEN` 拉私有 git 依赖。不加 OS 矩阵、clippy、cargo-deny。
