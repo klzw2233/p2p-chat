@@ -43,6 +43,19 @@ p2p-chat --temp --relay https://relay.example
 
 启动后打印 `Peer ID: <64 hex>`，进入 REPL，后台 `accept`。
 
+### Prompt 与按键
+
+TTY 模式的 prompt 会显示当前 Chat Session：
+
+- `[idle]> `：没有活动 Chat Session。
+- `[<8-hex>|TOFU]> `：连接到尚未完成 Verified Status 的 Remote Peer。
+- `[<8-hex>|Verified]> `：Remote Peer 已通过 `/verify` 标记为 Verified。
+- `[<8-hex>|unknown]> `：Trust State 不可用或未知。
+
+其中 `<8-hex>` 是 Remote Peer ID 的前 8 个小写十六进制字符。支持常规 Emacs 风格行编辑；Up/Down 只回忆**当前进程**中输入过的行，不写入历史文件。Ctrl-C 放弃当前 draft 并显示新 prompt，不会退出进程或关闭 Chat Session；Ctrl-D、`/quit` 与 `/exit` 才会干净退出。raw mode 下 Ctrl-C 不再向进程发送 SIGINT。
+
+当 stdin 或 stdout 任一被 pipe 或重定向时，程序回退到普通逐行模式：不显示 prompt，普通输出写 stdout，错误写 stderr，也不会进入 raw mode。`/dial` 等待解析期间 prompt 暂停渲染；按键会排队并在操作完成后处理，不会丢失。
+
 ## 双实例本地测试
 
 跨 NAT / 不同机器用 `--n0-public`（或双方同一个 `--relay`）。不要把依赖公网 n0 的 live 拨号当 CI 必过项。
@@ -68,6 +81,17 @@ hello
 ```
 
 A 侧应看到 inbound Chat Session，并打出 `< hello`。两边都跑 `/sas`，带外核对 SAS Display（8 组 5 位数字）。一致后各自 `/verify`，再用 `/info` 看 Trust State 是否为 Verified。
+
+### TTY 双终端人工验证记录（2026-09-04）
+
+以下流程已由两个终端使用 `cargo run -- --temp --n0-public` 实际验证：
+
+1. A、B 成功建立 Chat Session；双方均显示 8 字符 Remote Peer ID 与 `TOFU` prompt。
+2. 双方消息和 SAS Display 能互相收发，SAS 一致。
+3. `/verify` 成功后，双方 prompt 立即变为 `Verified`。
+4. 对端发送消息时，正在编辑的输入仍可继续使用，终端没有发生输入中断或丢失；Ctrl-C 可放弃当前 draft 而不退出进程。
+5. Ctrl-D 可结束输入；对端断开后显示错误/断开信息，prompt 回到 `[idle]> `，后续输入无 Chat Session 时得到预期错误。
+6. 终端退出后 shell 保持可用，无需执行 `stty sane`。
 
 结束：`/close` 只关当前 Chat Session；`/quit` 或 `/exit` 退出进程。
 

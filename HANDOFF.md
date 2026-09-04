@@ -26,6 +26,10 @@
 | Ticket 2 CLI / 身份 / 持久化 | [#3](https://github.com/klzw2233/p2p-chat/issues/3) — **已关**，合入 `main` via #7 |
 | Ticket 3 REPL / SAS / 斜杠命令 | [#4](https://github.com/klzw2233/p2p-chat/issues/4) — **已关**，合入 `main` via #9 |
 | Ticket 4 文档 | [#5](https://github.com/klzw2233/p2p-chat/issues/5) — README + `notes/` |
+| Spec #12 Terminal REPL Presentation | [#12](https://github.com/klzw2233/p2p-chat/issues/12) — **进行中** |
+| Ticket 5 Presentation Layer | [#13](https://github.com/klzw2233/p2p-chat/issues/13) — **已关** |
+| Ticket 6 Dual-Mode Event Loop | [#14](https://github.com/klzw2233/p2p-chat/issues/14) — **已关** |
+| Ticket 7 文档与人工验证 | [#15](https://github.com/klzw2233/p2p-chat/issues/15) — **进行中** |
 | 底层库 | `https://github.com/klzw2233/P2PCore.git`（git 依赖，commit 以 `Cargo.lock` 为准） |
 | 本地检出 | 同级目录 `../P2PCore`（只读参考；本 crate 不要 path 依赖） |
 
@@ -43,7 +47,7 @@ Issue tracker 约定：`docs/agents/issue-tracker.md`。关票用 `gh issue clos
 | 存储 | `--data-dir` 持久化；`--temp` 内存。密码：`--password` / `P2P_PASSWORD` / 交互提示 |
 | 帧 | 4 字节大端长度 + JSON，见 [ADR-0001](./docs/adr/0001-length-prefixed-json-framing.md) |
 | Peer ID 展示 | 64 字符 hex，界面可截断 |
-| REPL | 单进程：后台 `accept`，前台 `/dial` `/sas` `/verify` `/info` `/close` `/help` `/quit`，非斜杠当聊天文本 |
+| REPL | 单进程：后台 `accept`，前台 `/dial` `/sas` `/verify` `/info` `/close` `/help` `/quit`，非斜杠当聊天文本；TTY 使用 `rustyline-async`，非 TTY 使用普通逐行模式 |
 | 范围外 | 群聊、离线投递、文件传输、GUI |
 
 grilling 记录在会话里，不单独成文。
@@ -56,6 +60,9 @@ grilling 记录在会话里，不单独成文。
 - Ticket 2：`cli.rs` / `store.rs`，身份持久化。
 - Ticket 3：`command.rs` + `app.rs` REPL；`/sas` → `p2p_trust::sas`；`/verify` → `endpoint.mark_verified`。
 - Ticket 4：README 安装 / 构建 / 双实例 / Relay / Slash Commands；`notes/01-p2pcore-integration.md`。
+- Ticket 5：`ui.rs` presentation layer、纯 `prompt_for`、TTY / 非 TTY 输入。
+- Ticket 6：`app.rs` 接入单一 dual-mode event loop 与 interruption-free prompt。
+- Ticket 7：架构、使用说明与双终端人工验证同步。
 
 ---
 
@@ -71,7 +78,8 @@ grilling 记录在会话里，不单独成文。
 
 3. **`--n0-public` 的 DialHints URL 是硬编码副本。** p2p-core 不暴露 iroh 的 n0 URL 列表；应用抄了 `iroh::defaults::prod` 四个 hostname。iroh 改默认时要对一下。
 
----
+4. **已知的展示限制：`/dial` 会暂时阻塞渲染。** `endpoint.dial()` 等待期间约 20s（`--n0-public`）没有轮询 readline；输入会排队但不会丢失。若未来需要无冻结交互，应将 dial 放入 `tokio::spawn`，通过 oneshot completion channel 作为第四个 `select!` 分支。
+   - 这是当前 ticket 的刻意边界，不要在没有需求时提前扩展。
 
 ## 建议的下一步
 
