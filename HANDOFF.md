@@ -1,7 +1,7 @@
 # 工作状态交接
 
-**最后更新: 2026-09-02**
-**当前阶段: Tickets 1–4 与 Spec #1 已全部关闭。**
+**最后更新: 2026-09-05**
+**当前阶段: Tickets 1–7 与 Spec #1 / #12 已全部关闭。**
 
 本文件供接手的 Claude Code 会话阅读。先读 [CONTEXT.md](./CONTEXT.md)，再读本文，再读 [docs/architecture.md](./docs/architecture.md)。
 
@@ -26,10 +26,10 @@
 | Ticket 2 CLI / 身份 / 持久化 | [#3](https://github.com/klzw2233/p2p-chat/issues/3) — **已关**，合入 `main` via #7 |
 | Ticket 3 REPL / SAS / 斜杠命令 | [#4](https://github.com/klzw2233/p2p-chat/issues/4) — **已关**，合入 `main` via #9 |
 | Ticket 4 文档 | [#5](https://github.com/klzw2233/p2p-chat/issues/5) — README + `notes/` |
-| Spec #12 Terminal REPL Presentation | [#12](https://github.com/klzw2233/p2p-chat/issues/12) — **进行中** |
+| Spec #12 Terminal REPL Presentation | [#12](https://github.com/klzw2233/p2p-chat/issues/12) — **已关** |
 | Ticket 5 Presentation Layer | [#13](https://github.com/klzw2233/p2p-chat/issues/13) — **已关** |
 | Ticket 6 Dual-Mode Event Loop | [#14](https://github.com/klzw2233/p2p-chat/issues/14) — **已关** |
-| Ticket 7 文档与人工验证 | [#15](https://github.com/klzw2233/p2p-chat/issues/15) — **进行中** |
+| Ticket 7 文档与人工验证 | [#15](https://github.com/klzw2233/p2p-chat/issues/15) — **已关** |
 | 底层库 | `https://github.com/klzw2233/P2PCore.git`（git 依赖，commit 以 `Cargo.lock` 为准） |
 | 本地检出 | 同级目录 `../P2PCore`（只读参考；本 crate 不要 path 依赖） |
 
@@ -83,7 +83,7 @@ grilling 记录在会话里，不单独成文。
 
 ## 建议的下一步
 
-Tickets 1–4 与 #1 均已关闭。新工作请开新 issue。不要提前做群聊 / 文件。
+Tickets 1–7 与 #1 / #12 均已关闭。新工作请开新 issue。不要提前做群聊 / 文件。已知产品缺口只剩非阻塞 `/dial`（缺口 4）；不要在没有新 ticket 时做。
 ---
 
 ## 动手前必读（按顺序）

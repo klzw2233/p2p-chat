@@ -9,7 +9,7 @@
 ## 2. 架构设计原则 (Design Principles)
 
 1. **职责分层清晰 (Layered Separation)**：底层密码学与传输协议完全委托给 `P2PCore` 与 `p2p-trust`，本应用仅关注应用层协议帧封装、会话生命周期管理与终端人机交互。
-2. **异步非阻塞 (Async & Non-blocking Concurrency)**：后台监听接入、远端消息读取、本地终端按行输入解耦并行，避免任何单点 I/O 阻塞整体交互。
+2. **异步非阻塞 (Async & Non-blocking Concurrency)**：后台监听接入、远端消息读取、本地终端按行输入解耦并行，三者互不阻塞。`/dial` 等待 `endpoint.dial()` 期间是已知冻结（`--n0-public` 约 20s），见 [HANDOFF.md](../HANDOFF.md) 缺口 4；不在本层当作缺陷去修。
 3. **确定性安全 (Deterministic Security Guarantee)**：严格遵循零信任模型，不妥协端到端机密性与认证性；身份公钥即地址，带外比对 SAS 升级至 Verified 状态。
 4. **极简与可测性 (Simplicity & Testability)**：遵循 Ponytail 原则，不做未请求的过度设计与抽象。帧编解码在纯函数缝隙上测（`encode_frame` / `decode_frame`），不依赖 Relay。跨 Peer 的 Session 集成测依赖 `p2p-core` 的测试专用 Relay TLS 跳过，当前库尚未对该能力开放公开 API，因此 live `dial`/`accept` 不是 CI 必过项。用法见 [README.md](../README.md)；接入笔记见 [notes/](../notes/)。
 
@@ -150,7 +150,7 @@
         │                                                                 │
         ├── 3. Display SAS: "12345 67890 ..."                             ├── 3. Display SAS: "12345 67890 ..."
         │                                                                 │
-        │◀══════════ 4. Out-of-band Channel (Phone / In-Person) ═════════▶│
+        │◀══════════ 4. Out-of-band path (Phone / In-Person) ════════════▶│
         │                         (Verify SAS match)                      │
         │                                                                 │
   (User runs /verify)                                               (User runs /verify)
