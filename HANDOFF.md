@@ -78,12 +78,9 @@ grilling 记录在会话里，不单独成文。
 
 3. **`--n0-public` 的 DialHints URL 是硬编码副本。** p2p-core 不暴露 iroh 的 n0 URL 列表；应用抄了 `iroh::defaults::prod` 四个 hostname。iroh 改默认时要对一下。
 
-4. **已知的展示限制：`/dial` 会暂时阻塞渲染。** `endpoint.dial()` 等待期间约 20s（`--n0-public`）没有轮询 readline；输入会排队但不会丢失。若未来需要无冻结交互，应将 dial 放入 `tokio::spawn`，通过 oneshot completion channel 作为第四个 `select!` 分支。
-   - 这是当前 ticket 的刻意边界，不要在没有需求时提前扩展。
-
 ## 建议的下一步
 
-Tickets 1–7 与 #1 / #12 均已关闭。新工作请开新 issue。不要提前做群聊 / 文件。已知产品缺口只剩非阻塞 `/dial`（缺口 4）；不要在没有新 ticket 时做。
+Tickets 1–7 与 spec #1 / #12 均已关闭（含 ticket-8 非阻塞 /dial，#20）。新工作请开新 issue。不要提前做群聊 / 文件。
 ---
 
 ## 动手前必读（按顺序）
