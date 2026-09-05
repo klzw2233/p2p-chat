@@ -1,7 +1,7 @@
 //! REPL event loop: stdin, inbound accept, and Chat Session recv.
 
-use std::pin::Pin;
 use std::future::Future;
+use std::pin::Pin;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use p2p_core::{DialHints, Endpoint, Error, Session};
