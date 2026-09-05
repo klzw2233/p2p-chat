@@ -1,5 +1,7 @@
 //! REPL event loop: stdin, inbound accept, and Chat Session recv.
 
+use std::future::Future;
+use std::pin::Pin;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use p2p_core::{DialHints, Endpoint, Error, Session};
@@ -20,6 +22,8 @@ pub async fn run_repl(endpoint: Endpoint, relay_urls: Vec<String>) -> Result<(),
     ui.system("Type /help for Slash Commands. Listening for inbound Chat Sessions.");
 
     let mut session: Option<Session> = None;
+    type DialFuture<'a> = Pin<Box<dyn Future<Output = Result<Session, Error>> + Send + 'a>>;
+    let mut dialing: Option<DialFuture<'_>> = None;
 
     loop {
         let want = prompt_for(remote_of(&endpoint, &session));
@@ -32,7 +36,7 @@ pub async fn run_repl(endpoint: Endpoint, relay_urls: Vec<String>) -> Result<(),
                 match event {
                     Ok(ReadlineEvent::Line(line)) => {
                         input.remember(&line);
-                        if handle_line(&endpoint, &relay_urls, &mut session, &mut ui, &line).await {
+                        if handle_line(&endpoint, &relay_urls, &mut session, &mut dialing, &mut ui, &line).await {
                             break;
                         }
                     }
@@ -64,6 +68,13 @@ pub async fn run_repl(endpoint: Endpoint, relay_urls: Vec<String>) -> Result<(),
                     }
                 }
             }
+            result = async { dialing.as_mut().unwrap().as_mut().await }, if dialing.is_some() => {
+                dialing = None;
+                match result {
+                    Ok(s) => on_session(&endpoint, &mut session, &mut ui, s, "outbound"),
+                    Err(e) => ui.error(&format!("dial failed: {e}")),
+                }
+            }
         }
     }
 
@@ -92,10 +103,11 @@ async fn recv_active(
 }
 
 /// Returns true if the REPL should quit.
-async fn handle_line(
-    endpoint: &Endpoint,
-    relay_urls: &[String],
+async fn handle_line<'a>(
+    endpoint: &'a Endpoint,
+    relay_urls: &'a [String],
     session: &mut Option<Session>,
+    dialing: &mut Option<Pin<Box<dyn Future<Output = Result<Session, Error>> + Send + 'a>>>,
     ui: &mut Ui,
     line: &str,
 ) -> bool {
@@ -103,7 +115,7 @@ async fn handle_line(
         Ok(None) => false,
         Ok(Some(UserInput::Quit)) => true,
         Ok(Some(input)) => {
-            dispatch(endpoint, relay_urls, session, ui, input).await;
+            dispatch(endpoint, relay_urls, session, dialing, ui, input).await;
             false
         }
         Err(e) => {
@@ -113,10 +125,11 @@ async fn handle_line(
     }
 }
 
-async fn dispatch(
-    endpoint: &Endpoint,
-    relay_urls: &[String],
+async fn dispatch<'a>(
+    endpoint: &'a Endpoint,
+    relay_urls: &'a [String],
     session: &mut Option<Session>,
+    dialing: &mut Option<Pin<Box<dyn Future<Output = Result<Session, Error>> + Send + 'a>>>,
     ui: &mut Ui,
     input: UserInput,
 ) {
@@ -126,7 +139,7 @@ async fn dispatch(
         UserInput::Sas => print_sas(endpoint, session, ui),
         UserInput::Verify => verify(endpoint, session, ui),
         UserInput::Close => close_session(session, ui),
-        UserInput::Dial(peer) => dial(endpoint, relay_urls, session, ui, peer).await,
+        UserInput::Dial(peer) => dial(endpoint, relay_urls, session, dialing, ui, peer),
         UserInput::Message(text) => send_text(session, ui, &text).await,
         UserInput::Quit => {}
     }
@@ -190,10 +203,11 @@ fn close_session(session: &mut Option<Session>, ui: &mut Ui) {
     }
 }
 
-async fn dial(
-    endpoint: &Endpoint,
-    relay_urls: &[String],
+fn dial<'a>(
+    endpoint: &'a Endpoint,
+    relay_urls: &'a [String],
     session: &mut Option<Session>,
+    dialing: &mut Option<Pin<Box<dyn Future<Output = Result<Session, Error>> + Send + 'a>>>,
     ui: &mut Ui,
     peer: PeerId,
 ) {
@@ -201,20 +215,18 @@ async fn dial(
         ui.error("already in a Chat Session; /close first");
         return;
     }
+    if dialing.is_some() {
+        ui.error("already dialing; wait for completion or /quit");
+        return;
+    }
     let hints = if relay_urls.is_empty() {
         DialHints::none()
     } else {
         DialHints::relays(relay_urls.iter().cloned())
     };
-    // ponytail: global freeze while dial awaits (~20s against --n0-public).
-    // Nobody polls readline(), so SharedWriter output is not rendered and
-    // keystrokes are not echoed (they queue in crossterm, not lost).
-    // Upgrade: tokio::spawn the dial with a oneshot as a fourth select! branch.
     ui.system(&format!("dialing {}", peer_id_hex(peer)));
-    match endpoint.dial(peer, hints).await {
-        Ok(s) => on_session(endpoint, session, ui, s, "outbound"),
-        Err(e) => ui.error(&format!("dial failed: {e}")),
-    }
+
+    *dialing = Some(Box::pin(endpoint.dial(peer, hints)));
 }
 
 async fn send_text(session: &mut Option<Session>, ui: &mut Ui, text: &str) {
